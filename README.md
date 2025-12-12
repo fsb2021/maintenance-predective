@@ -1,6 +1,5 @@
 # maintenance-predective
-Predictive Maintenance System with IoT and TCP/IP
-Predictive Maintenance System with IoT and TCP/IP
+
 Project Overview
 This project implements a predictive maintenance system for electrical machines using IoT sensors
 and Machine Learning.
@@ -13,16 +12,15 @@ Sensors (Temp, Current, Voltage, Rotation)-> ESP8266 / ESP32 (WiFi) - TCP/IP Cli
 Getting Started
 Requirements- Python 3.12+- ESP8266 / ESP32 device- Python libraries: socket, pandas, scikit-learn, matplotlib- Arduino IDE or PlatformIO (for ESP device)
 Installation
-1. Clone the repository:
-   git clone https://github.com/yourusername/predictive-maintenance.git
-2. Navigate to the project folder:
+
+. Navigate to the project folder:
    cd predictive-maintenance
-3. Install Python dependencies:
+. Install Python dependencies:
    pip install -r requirements.txt
-4. Upload ESP client code to your ESP device.
-5. Run the server:
+. Upload ESP client code to your ESP device.
+. Run the server:
    python server.py
-6. Open the dashboard to monitor predictions in real time.
+. Open the dashboard to monitor predictions in real time.
 How It Works
 1. Sensors continuously measure machine parameters.
 2. ESP device sends the data via TCP/IP to the local server.

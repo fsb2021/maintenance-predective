@@ -1,0 +1,90 @@
+sketch_dec12a.ino
+
+1  #include <ESP8266WiFi.h>
+2  #include <OneWire.h>
+3  #include <DallasTemperature.h>
+4
+5  /* *----------- WIFI p********** ----------*/
+6  const char* ssid = "GALAXY A52A200";
+7  const char* password = "111188647";
+8
+9  /* *----------- DS18B20  ----------*/
+10 #define ONE_WIRE_BUS 4
+11 OneWire oneWire(ONE_WIRE_BUS);
+12 DallasTemperature sensors(&oneWire);
+13
+14 /* *----------- ANALOG SENSORS ----------*/
+15 #define PIN_CURRENT 40
+16 #define PIN_VOLTAGE 40
+17
+18 WiFiServer server(80);
+19
+20 void setup() {
+21   Serial.begin(115200);
+22   delay(500);
+23
+24   sensors.begin();
+25
+26   WiFi.begin(ssid, password);
+27   Serial.print("connexion WiFi...");
+28   while (WiFi.status() != WL_CONNECTED) {
+29     delay(500);
+30     Serial.print(".");
+31   }
+32
+33   Serial.println("\nCarte connectée");
+34   Serial.print("IP: ");
+35   Serial.println(WiFi.localIP());
+36
+37   randomSeed(analogRead(A0));
+38
+39   server.begin();
+40
+41 } // void setup()
+42
+43 void loop() {
+44   // --- Lecture capteurs ---
+45   sensors.requestTemperatures();
+46   float temperature = sensors.getTempCByIndex(0);
+47
+48   int rawCurrent = analogRead(PIN_CURRENT);
+49   float current = (rawCurrent / 1023.0) * 5.0;
+50
+51   int rawVoltage = analogRead(PIN_VOLTAGE);
+52   float voltage = (rawVoltage / 1023.0) * 11.0;
+53
+54   int rotation = random(800, 3000);
+55
+56   // --- Construire LIGNE 1 ---
+57   String etat = (WiFi.status() == WL_CONNECTED) ? "Connectée" : "Non connectée";
+58
+59   String ligne1 = "Adresse IP : " + WiFi.localIP().toString() +
+60                  ", État : " + etat;
+61
+62   // --- Construire LIGNE 2 ---
+63   String ligne2 = "Température : " + String(temperature, 2) + " °C," +
+64                  "\nCourant : " + String(current, 2) + " A," +
+65                  "\nTension : " + String(voltage, 2) + " V," +
+66                  "\nRotation : " + String(rotation) + " RPM";
+67
+68   // --- Page Web ---
+69   WiFiClient client = server.available();
+70   if (!client) return;
+71
+72   while (!client.available()) delay(1);
+73
+74   client.readStringUntil('\r');
+75
+76   client.println("HTTP/1.1 200 OK");
+77   client.println("Content-Type: text/plain");
+78   client.println("Connection: close");
+79   client.println();
+80
+81   // Format idéal pour App Inventor
+82   client.println(ligne1);
+83   client.println("###");
+84   client.println(ligne2);
+85
+86   delay(500);
+87
+88 } // void loop()

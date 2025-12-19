@@ -3,87 +3,83 @@
 #include <DallasTemperature.h>
 
 /* ----------- WIFI ---------- */
-const char* ssid = "GALAXY A52A200";
-const char* password = "111188647";
+const char* ssid = "name";
+const char* password = "pasword";
+
+/* ----------- TCP SERVER PC ---------- */
+const char* serverIP = "*****";   // IP du PC
+const uint16_t serverPort = 5005;
+WiFiClient client;
 
 /* ----------- DS18B20 ---------- */
 // GPIO4 = D2 sur NodeMCU
-#define ONE_WIRE_BUS D2
+#define ONE_WIRE_BUS 4   // GPIO4
 OneWire oneWire(ONE_WIRE_BUS);
 DallasTemperature sensors(&oneWire);
 
-
+/* ----------- ANALOG ---------- */
+// ESP8266 → une seule entrée analogique
 #define PIN_ANALOG A0
-
-WiFiServer server(80);
 
 void setup() {
   Serial.begin(115200);
-  delay(500);
 
-  // Initialisation du capteur DS18B20
+  /* DS18B20 */
   sensors.begin();
 
-  // Connexion WiFi
+  /* WiFi */
   WiFi.begin(ssid, password);
-  Serial.print("Connexion WiFi");
+  Serial.println("Connexion au WiFi...");
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
   }
 
-  Serial.println("\nCarte connectée");
-  Serial.print("IP : ");
+  Serial.println("\nConnecté !");
+  Serial.print("IP ESP8266 : ");
   Serial.println(WiFi.localIP());
-
-  randomSeed(analogRead(A0));
-
-  server.begin();
-  Serial.println("Serveur HTTP démarré");
 }
 
 void loop() {
 
-  /* ----------- Lecture capteurs ---------- */
+  /* ----------- Connexion TCP ---------- */
+  if (!client.connected()) {
+    Serial.println("Connexion au serveur TCP...");
+    if (!client.connect(serverIP, serverPort)) {
+      Serial.println("Échec de connexion, nouvelle tentative...");
+      delay(2000);
+      return;
+    }
+    Serial.println("Connecté au serveur !");
+  }
+
+  /* ----------- LECTURE CAPTEURS ---------- */
+
+  // DS18B20
   sensors.requestTemperatures();
   float temperature = sensors.getTempCByIndex(0);
 
-  int rawAnalog = analogRead(PIN_ANALOG);
+  // Lecture analogique
+  int raw = analogRead(PIN_ANALOG);
 
-  // Exemple de conversion (à adapter selon ton capteur réel)
-  float current = (rawAnalog / 1023.0) * 3.3;   // Courant simulé
-  float voltage = (rawAnalog / 1023.0) * 11.0;  // Tension simulée
+  // ⚠️ Conversion à adapter selon ton montage réel
+  float courant = (raw / 1023.0) * 3.3;    // Exemple
+  float tension = (raw / 1023.0) * 11.0;   // Exemple
 
-  int rotation = random(800, 3000);
+  // Rotation simulée
+  int rotation = random(1000, 2000);
 
-  /* ----------- LIGNE 1 ---------- */
-  String etat = (WiFi.status() == WL_CONNECTED) ? "Connectee" : "Non connectee";
+  /* ----------- FORMAT TCP ---------- */
+  String payload = String(temperature, 2) + ";" +
+                   String(courant, 2) + ";" +
+                   String(tension, 2) + ";" +
+                   String(rotation) + "\n";
 
-  String ligne1 = "IP: " + WiFi.localIP().toString() +
-                  " | Etat: " + etat;
+  /* ----------- ENVOI ---------- */
+  client.print(payload);
 
-  /* ----------- LIGNE 2 ---------- */
-  String ligne2 = "Temperature: " + String(temperature, 2) + " C\n" +
-                  "Courant: " + String(current, 2) + " A\n" +
-                  "Tension: " + String(voltage, 2) + " V\n" +
-                  "Rotation: " + String(rotation) + " RPM";
+  Serial.print("Données envoyées : ");
+  Serial.println(payload);
 
-  /* ----------- Serveur Web ---------- */
-  WiFiClient client = server.available();
-  if (!client) return;
-
-  while (!client.available()) delay(1);
-  client.readStringUntil('\r');
-
-  client.println("HTTP/1.1 200 OK");
-  client.println("Content-Type: text/plain; charset=utf-8");
-  client.println("Connection: close");
-  client.println();
-
-  // Format idéal pour App Inventor / Python / Processing
-  client.println(ligne1);
-  client.println("###");
-  client.println(ligne2);
-
-  delay(500);
+  delay(2000);
 }
